@@ -1,0 +1,854 @@
+\documentclass[a4paper,ngerman,10pt]{scrartcl}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp} 			% Grad-Zeichen via \textdegree
+\usepackage{tikz}
+\usepackage{fp}	%Zum Berechnen Vektorabstand (Makro calcLength)
+\usetikzlibrary{scopes,calc,shapes.geometric,intersections,decorations,decorations.markings,}
+\usetikzlibrary{decorations.pathreplacing} % für das Beispiel Kontrollpunkte sichtbar machen mit Decorations
+\usepackage{wrapfig} %Bilder können von Text umflossen werden
+
+%Seitenränder:
+\usepackage{geometry}
+\geometry{a4paper, top=25mm, left=30mm, right=20mm, bottom=30mm,
+headsep=10mm, footskip=12mm}
+
+
+\title{TikZ-Kurzreferenz}
+\author{Steffi}
+% User defined
+%%% breite	Breite	5	Breite des Demo-Musters in cm
+\providecommand{\breite}{5}
+%%% hoehe	H&ouml;	5	H&ouml;e des Demo-Musters in cm
+\providecommand{\hoehe}{5}
+
+\makeatletter
+% Makro zum Berechnen des Abstandes zweier TikZ-Koordinaten.
+% Aufruf:\calcLength(A,B){mylen} --> Berechnet den Abstand von A und B und speichert das Ergebnis im Makro \mylen
+% Das Ergbnis ist in pt; 1cm = 28.45274pt
+\def\calcLength(#1,#2)#3{%
+\pgfpointdiff{\pgfpointanchor{#1}{center}}%
+             {\pgfpointanchor{#2}{center}}%
+\pgf@xa=\pgf@x%
+\pgf@ya=\pgf@y%
+\FPeval\@temp@a{\pgfmath@tonumber{\pgf@xa}}%
+\FPeval\@temp@b{\pgfmath@tonumber{\pgf@ya}}%
+\FPeval\@temp@sum{(\@temp@a*\@temp@a+\@temp@b*\@temp@b)}%
+\FProot{\FPMathLen}{\@temp@sum}{2}%
+\FPround\FPMathLen\FPMathLen5\relax
+\global\expandafter\edef\csname #3\endcsname{\FPMathLen}
+}
+
+\makeatother
+
+\usepackage{hyperref} % immer ganz am ende der Präambel
+
+\def\helloworld{}
+
+\begin{document} 
+\maketitle
+\subsubsection*{TikZ-Grafiken}
+
+Prinzipiell muss das Paket geladen werden mit \verb!\usepackage{tikz}!.
+Jede Grafik wird in einer \verb!{tikzpicture}! Umgebung definiert, das ist auch der äußerste TikZ-Scope. Das sieht so aus: 
+
+\begin{verbatim}\begin{tikzpicture}[<options>]   <environment contents>    \end{tikzpicture}\end{verbatim}
+
+Als Alternative für Bilder, die nur einen oder wenige Befehle enthalten, eignet sich der Befehl 
+\verb!\tikz!\texttt{ [<options>] }\verb!{<path commands>}!.
+Die geschweiften Klammern kann man weglassen, wenn es nur ein einziger Befehl ist.
+
+Zusätzliche TikZ-Bibliotheken lädt man mit \verb!\usetikzlibrary{<list! \verb!of! \verb!libraries>}!, die Namen werden durch Komma getrennt. Dieser Befehl bewirkt, dass die Datei \verb!tikzlibrary<library>.code.tex! geladen wird, für jede \verb!<library>! in der \verb!<list of libraries>}!. Für eigene TikZ-Libraries muss man also nur eine Datei entsprechenden Namens irgendwo ablegen, wo TeX ihn finden kann.
+
+Die Bounding-Box von TikZ-Bildern wird automatisch so berechnet, dass alle Koordinaten reinpassen. Also auch solche, die z.B. nur als \emph{controls} für Bezierkurven genutzt werden. Wenn das nicht sinnvoll ist, kann man die Box explizit setzen mit der \verb![use as bounding box]! Option.
+
+\paragraph*{Scopes}
+In \verb!tizkpicture! Umgebungen kann man mit \verb!{scope}!  Umgebungen wieder interne Scopes erzeugen. Das sieht so aus:
+
+\begin{verbatim}\begin{scope}[<options>]     <environment contents>     \end{scope}\end{verbatim}
+
+Innerhalb von TikZ-Scopes und -Bildern sind die \verb!\path! Befehle verfügbar, um etwas zu zeichnen und Grafikoptionen, siehe Seite~\pageref{sec:Grafikoptionen}, können pro Zeichenbefehl, pro Scope und pro Bild gesetzt werden.
+
+\begin{wrapfigure}{r}{2cm}\begin{tikzpicture}
+{ [ultra thick]
+{ [red]
+\draw (0mm,10mm) -- (10mm,10mm);
+\draw (0mm,8mm) -- (10mm,8mm);
+}
+\draw (0mm,6mm) -- (10mm,6mm);
+}
+{ [color=green]
+\draw (0mm,4mm) -- (10mm,4mm);
+\draw (0mm,2mm) -- (10mm,2mm);
+\draw[blue] (0mm,0mm) -- (10mm,0mm);
+}
+\end{tikzpicture}\end{wrapfigure}
+
+Mit \verb!\usetikzlibrary{scopes}! lassen sich Scopes einfacher definieren, nur mit geschweiften Klammern, z.B:
+
+\begin{verbatim}\begin{tikzpicture}
+{ [ultra thick]
+  { [red]
+    \draw (0mm,10mm) -- (10mm,10mm);
+    \draw (0mm,8mm) -- (10mm,8mm);
+  }
+  \draw (0mm,6mm) -- (10mm,6mm);
+}
+{ [green]
+  \draw (0mm,4mm) -- (10mm,4mm);
+  \draw (0mm,2mm) -- (10mm,2mm);
+  \draw[blue] (0mm,0mm) -- (10mm,0mm);
+}
+\end{tikzpicture}\end{verbatim}
+
+\paragraph*{Spezielle Optionen für \emph{tikzpicture} Umgebungen}
+
+\verb!execute at begin picture=<code>!, \verb!execute at end picture=<code>! (no default)
+  
+This option causes \verb!<code>! to be executed at the beginning \emph{[at the end]} of the picture. The effect of multiply setting this
+option will cause the code to accumulate. The first option is mainly used in styles like the \verb!every picture! style to execute certain code at the start of a picture. Den Code übergibt man am besten in einen von geschweiften Klammern umschlossenen Block.
+
+\subsubsection*{Styles}
+Ein Style ist ein Key (siehe \pageref{sec:Grafikoptionen} Grafikoptionen), der bewirkt, dass eine Reihe von Grafikoptionen verarbeitet wird.
+Sobald ein Stil definiert ist, kann er wie jeder andere Key benutzt werden.
+
+Beispielsweise kann der vordefinierte Stil \emph{help lines} so benutzt werden:
+
+ \verb!\tikz \draw[step=2pt,help lines] (0,0) grid (10pt,10pt);! Das Ergebnis sieht dann so aus: \tikz \draw[step=2pt,help lines] (0,0) grid (10pt,10pt);
+
+Globale Stile definieren: \verb$\tikzset{<style name>/.style={very thin,color=blue!50}}$. 
+
+Default-Stile global setzen: \verb!\tikzset{every picture/.style=semithick}!
+
+Man kann auch Stile definieren, die nur in einem bestimmten TikZ-Bild oder Scope gültig sind:
+
+\begin{verbatim}\begin{tikzpicture}
+  [color=red,% 		--> Einen Grafikparameter für alle Objekte im Bild setzen
+  every node/.style={fill=red!30,rounded corners},% --> gilt nur für alle Nodes
+  my style/.style={draw=red,fill=red!20},%          --> weiterer Stil
+  ...<other options>...]
+  <environment contents>
+\end{tikzpicture}\end{verbatim}
+
+\paragraph*{append und prefix}
+Man kann auch Optionen an bereits bestehende Stile anhängen. Dazu schreibt man statt \verb!/.style=! einfach \verb!/.append style=! oder \verb!/.prefix style=!. Bei mehrfach gesetzten Optionen in einem Stil gewinnt jeweils die zuletzt definierte. Beispiel: nur die Farbe von Hilfslinien ändern in einem Bild:
+
+\begin{verbatim}\begin{tikzpicture}[help lines/.append style=blue!50]\end{verbatim}
+
+\begin{wrapfigure}{r}{3.5cm}\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},outline2/.style={draw=#1,thick,fill=#1!50},
+outline2/.default=black]
+\node [outline=blue] at (0,0) {blue};
+\node [outline=red] at (2,0) {red};
+\node [outline2] at (0,1) {default};
+\node [outline2=green] at (2,1) {green};
+\end{tikzpicture}\end{wrapfigure}
+
+\paragraph*{Parametrisierte Styles}
+Styles can be parameterized. This means that you write \verb!<style>=<value>! when you use the style instead of just \verb!<style>!. In this case, all occurrences of \verb!#1! in \verb!<style>! are replaced by \verb!<value>!. Man kann hierfür auch Defaults vorgeben. Beispiel:
+
+\begin{verbatim}\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},
+  outline2/.style={draw=#1,thick,fill=#1!50},
+  outline2/.default=black]
+  \node [outline=blue] at (0,0) {blue};
+  \node [outline=red] at (2,0) {red};
+  \node [outline2] at (0,1) {default};
+  \node [outline2=green] at (2,1) {green};
+\end{tikzpicture}\end{verbatim}
+
+Weitere Details zu Styles stehen im \emph{pgfmanual} in Kapitel 55.
+
+\subsubsection*{Koordinaten}
+Allgemeine Syntax: \verb!([<options>]<coordinate specification>)!
+
+Koordinaten können mit Namen benannt werden, um sie später wiederzuverwenden. Beispiel:
+
+\begin{verbatim}\coordinate (content) at (90:3cm);
+\node [above] at (content) {Text above coord content};\end{verbatim}
+ 
+Details siehe Seite \pageref{path-content und node}.
+
+\paragraph*{Implizite Angabe eines Koordinatensystems: }
+Die Koordinatenspezifikation erfolgt i.d.R. als x-y-Wertepaar (kartesische Koordinaten), etwa \verb|(x, y)|, die standardmäßige Einheit dabei ist cm. Mann kann die Einheit aber auch direkt angeben, z.B. \verb|(55mm,20pt)|. Man kann der Koordinatenspezifikation ein einzelnes oder zwei \verb|+| Zeichen voranstellen  wie in \verb|\draw (0,0) -- +(1cm,0cm) --  ++(0cm,2cm)|. Ein einzelnes Plus bedeutet, die neue Koordinate wird relativ zur letzten aktuellen Position definiert. Zwei Plusse bedeuten: die neue Koordinate wird relativ zur letzten aktuellen Position definiert und als neue aktuelle Position gesetzt.
+
+Koordinaten können auch in Polarkoordinaten angegeben werden, wenn man einen Doppelpunkt benutzt. Die Angabe \verb!(30:1cm)! bedeutet: 1cm in einer 30\textdegree Richtung, z.B: \tikz \draw (0,0) -- (30:1cm); 
+
+Man kann auch für die x- und y-Richtung 2 voneinander verschiedene Radien angeben, z.B. \verb!2cm and 1cm!.
+
+Weiterhin ist es möglich, statt einer Grad-Zahl eines der Schlüsselworte \verb!down!, \verb!left!, \verb!right!, \verb!north!, \verb!south!, \verb!west!, \verb!east!, \verb!north east!, \verb!north west!, \verb!south east!, \verb!south west! anzugeben. So ist die Angabe von \verb!90! Grad gleichbedeutend mit \verb!up! und \verb!north!.
+
+\paragraph*{Explizite Angabe eines Koordinatensystems:}
+Die Allgemeine Syntax lautet \texttt{(<coordinate system> cs:<list of key-value pairs>)}.
+Ein Beispiel:
+
+\begin{verbatim}\begin{tikzpicture}
+  \draw[blue] (canvas cs:x=0cm,y=0mm) -- ++(30:2cm and 1cm);
+  \draw[gray] (2,0) -- ++(30:2cm and 1cm);
+  \draw (4,0) -- ++(canvas polar cs:x radius=2cm,y radius=1cm,angle=30)
+\end{tikzpicture}\end{verbatim}
+
+\begin{tikzpicture}
+  \draw[blue] (canvas cs:x=0cm,y=0mm) -- ++(30:2cm and 1cm);
+  \draw[gray] (2,0) -- ++(30:2cm and 1cm);
+  \draw (4,0) -- ++(canvas polar cs:x radius=2cm,y radius=1cm,angle=30);
+\end{tikzpicture}
+
+\paragraph*{Weitere Hinweise zu Koordinatenangaben}
+
+Es sind auch Ausdrücke wie \verb!3cm+2pt! möglich.
+
+Es gibt noch andere Koordinatensysteme, z.B. \verb!xyz!, \verb!xyz polar!, \verb!barycentric! (\emph{pgfmanual} 13.2.2), \verb!node! und \verb!tangent!. Die relevanten werden nachfolgend erläutert. Wie Man eigene neue Koordinatensysteme definiert, ist im \emph{pgfmanual} in Abschnitt 13.2.5 erläutert.
+
+\paragraph*{Das Koordinatensystem \emph{node}}
+Angaben für dieses System können nur explizit gemacht werden. Es gibt folgende Keys:
+\begin{itemize}
+\item \verb!name=<node name>! Name eines zuvor definierten Nodes
+\item \verb!anchor=<anchor>! Position an dem Node. Die möglichen Werte sind \verb!north!, \verb!south!, \verb!west!, \verb!east!, \verb!north east!, \verb!north west!, \verb!south east!, \verb!south west!.
+\item \verb!angle=<degrees>! Anstatt \verb!anchor! kann man auch eine explizite Grad-Zahl angeben. Die Koordinate referenziert dan auf den Punkt am Rand des Nodes, den eine Gerade ausgehend vom Mittelpunkt des Nodes mit dem entsprechenden Wikel schneiden würde.
+\item Benutzt man weder \verb!anchor! noch \verb!angle!, berechnet TikZ automatisch eine geeignete Stelle am Rand des Nodes. Beispiel:
+\end{itemize}
+\begin{wrapfigure}{r}{2cm}\begin{tikzpicture}
+\path (0,0) node(a) [ellipse,rotate=10,draw] {\tiny Ellipse}
+      (1,-1) node(b) [circle,draw] {\tiny Kreis};
+\draw[thick] (node cs:name=a) -- (node cs:name=b);
+\end{tikzpicture}\end{wrapfigure}
+
+\begin{verbatim}
+\begin{tikzpicture}
+\path (0,0) node(a) [ellipse,rotate=10,draw] {\tiny Ellipse}
+      (1,-1) node(b) [circle,draw] {\tiny Kreis};
+\draw[thick] (node cs:name=a) -- (node cs:name=b);
+\end{tikzpicture}
+\end{verbatim}
+
+Weitere Details zum Node-Koordinatensystem stehen im \emph{pgfmanual} im Kapitel 13.2.3.
+
+\paragraph*{Das Koordinatensystem \emph{tangent}}
+Hierfür muss die TikZ-Library \verb!calc! geladen sein. Angaben für dieses System können nur explizit gemacht werden. 
+Mit diesem Koordinatensystem kann man die Koordinate berechnen, die auf einer Tangente am Rand eines Nodes liegt.
+
+Dieser Node muss das Shape \verb!coordinate! oder \verb!circle! haben.
+Es gibt folgende Keys:
+
+\begin{wrapfigure}{l}{3cm}\begin{tikzpicture}
+\draw[help lines] (0,0) grid (3,2);
+\coordinate (a) at (3,2);
+\node [circle,draw] (c) at (1,1) [minimum size=40pt] {$c$};
+\draw[red] (a) -- (tangent cs:node=c,point={(a)},solution=1) --
+(c.center) -- (tangent cs:node=c,point={(a)},solution=2) -- cycle;
+\end{tikzpicture}\end{wrapfigure}
+
+\begin{itemize}
+\item \verb!name=<node name>! Name eines zuvor definierten Nodes, dessen Rand die Tangente berührt (dieser Berührungspunkt ist die Koordinate)
+\item \verb!point=<point>! Der andere Punkt, durch den die Tangente verläuft
+\item \verb!solution=<number>! Falls es mehrere Lösungen/Berührungspunkte gibt, kann man hier angeben, die wievielte benutzt werden soll
+\end{itemize}
+
+\begin{verbatim}
+\begin{tikzpicture}
+  \draw[help lines] (0,0) grid (3,2);
+  \coordinate (a) at (3,2);
+  \node [circle,draw] (c) at (1,1) [minimum size=40pt] {$c$};
+  \draw[red] (a) -- (tangent cs:node=c,point={(a)},solution=1) --
+      (c.center) -- (tangent cs:node=c,point={(a)},solution=2) -- cycle;
+\end{tikzpicture}
+\end{verbatim}
+
+\paragraph*{Das Koordinatensystem \emph{perpendicular}}
+Man kann auch Koordinaten aber auch wie folgt definieren: Die Angabe\verb!(p |- q)! bedeutet: Der Schnittpunkt einer vertikalen Geraden durch p und einer horizontalen Geraden durch q. Das Koordinatensystem heißt \verb!perpendicular! und hat die folgenden Keys (bei expliziter Angabe):
+
+\begin{itemize}
+\item \verb!horizontal line through={(<coordinate>)}!
+\item \verb!vertical line through={(<coordinate>)}!
+\end{itemize}
+
+\paragraph*{Schnittpunkte von Pfaden berechnen}
+Benötigt die TikZ-Library \verb!intersections!. Dann kann man die Schnittpunkte von benamsten Pfaden berechnen, das geht mit dem Key \verb!name intersections!. Diesem Key übergibt man gewisse Optionen, unter anderem sind dass die Namen der Pfade, deren Schnittpunkte ermittelt werden sollen. Es werden automatisch Koordinaten mit Namen \verb!intersection-1!, \verb!intersection-2!, usw. erzeigt, wobei man das Prefix \verb!intersection! auch selbst ändern kann und die Anzahl der erzeugten Schnittpunkte ist auch über ein TeX-Makro auslesbar.
+
+Folgende Optionen nimmt der Key \verb!name intersections! entgegen:
+
+\begin{itemize}
+\item \verb!of=<name path1>and<name path2>! Die Namen der beiden Pfade, deren Schnittpunkte berechnet werden sollen
+\item \verb!name=<prefix>! Prefix für die Koordinatennamen, mit denen die Schnittpunkte benannt werden. Initialer Wert ist \verb!intersection!.
+\item \verb!total=<makro>! Die Anzahl der Schnittpunkte wird in diesem Makro gespeichert (kein Defaultwert)
+\item \verb!by=<comma-separated list>! Liste von expliziten Namen, die für die Schnittpunkte verwendet werden sollen. Die Schnittpunkte sind dann nicht nur via \verb!<prefix>-<number>!, sondern auch über den Namen aus dieser Liste erreichbar. Wenn ein Element aus dieser Liste mit eckigen Klammern beginnt, werden die darin angegebenen Optionen benutzt, um sie dem Schnittpunkt bei der Erstellung der Koordinate zuzuweisen.
+\item \verb!sort by=<path name>! Standardmäßig ist die Reihenfolge der Schnittpunkte so, wie siedurch den Algorithmus berechnet werden. Mit Hilfe dieser Option verläuft die fortlaufende Nummerierung der Schnittpunkte entlang dem angegebenen Pfad.
+\end{itemize}
+
+\begin{verbatim}
+\clip (-2,-2) rectangle (2,2);
+\draw [name path=curve 1] (-2,-1) .. controls (8,-1) and (-8,1) .. (2,1);
+\draw [name path=curve 2] (-1,-2) .. controls (-1,8) and (1,-8) .. (1,2);
+\fill [name intersections={of=curve 1 and curve 2, name=i, total=\t,
+                                by={[label=center:a]a,[label=center:b]b}}]
+      [red, opacity=0.5, every node/.style={above left, black, opacity=1}]
+      \foreach \s in {1,...,\t}{(i-\s) circle (2pt) node {\footnotesize\s}}
+      (a) circle (3pt)
+      (b) circle (3pt);\end{verbatim}
+
+\begin{tikzpicture}
+\clip (-1.5,-1.5) rectangle (1.5,1.5);
+\draw [name path=curve 1] (-2,-1) .. controls (8,-1) and (-8,1) .. (2,1);
+\draw [name path=curve 2] (-1,-2) .. controls (-1,8) and (1,-8) .. (1,2);
+\fill [name intersections={of=curve 1 and curve 2, name=i, total=\t,by={[label=center:a]a,[label=center:b]b}}]
+      [red, opacity=0.5, every node/.style={above left, black, opacity=1}]
+      \foreach \s in {1,...,\t}{(i-\s) circle (2pt) node {\footnotesize\s}}
+      (a) circle (3pt)
+      (b) circle (3pt);
+\end{tikzpicture}
+
+\subsubsection*{Kompliziertere Koordinatenberechnungen} benötigen die TikZ-Library \verb!calc! und sind im \emph{pgfmanual} Abschnitt 13.5.2 beschrieben.
+
+Die allgemeine Syntax lautet: \verb!([<options>]$<!\texttt{coordinate computation}\verb!>$)!
+
+Die \verb!<coordinate computation>! beginnt mit 
+ \verb!<factor>*<coordinate><modifiers>!, optional gefolgt von \verb!+! oder \verb!-! und weiteren  \texttt{<factor>*<coordinate><modifiers>}, usw.
+
+Die \verb!<factor>!s sind optional. Das ist ein Faktor, das heißt eine Zahl, oder ein Ausdruck, der eine Zahl ergibt, gefolgt von \verb!*!. Bei komplizierten Ausdrücken sollte man den Faktor in geschweifte Klammern setzen. 
+
+
+
+Im nachstehenden Beispiel ist jeweils genau ein \verb!<factor>! und genau eine \verb!<coordinate>!:
+
+\begin{verbatim}
+\begin{tikzpicture}
+\draw [help lines] (0,0) grid (3,2);
+\fill [red] ($2*(1,1)$) circle (2pt);
+\fill [green] (${1+1}*(1,.5)$) circle (2pt);
+\fill [blue] ($cos(0)*sin(90)*(1,1)$) circle (2pt);
+\fill [black] (${3*(4-3)}*(1,0.5)$) circle (2pt);
+\end{tikzpicture}
+\end{verbatim}
+
+\begin{tikzpicture}
+\draw [help lines] (0,0) grid (3,2);
+\fill [red] ($2*(1,1)$) circle (2pt);
+\fill [green] (${1+1}*(1,.5)$) circle (2pt);
+\fill [blue] ($cos(0)*sin(90)*(1,1)$) circle (2pt);
+\fill [black] (${3*(4-3)}*(1,0.5)$) circle (2pt);
+\end{tikzpicture}
+
+\paragraph*{Modifiers}
+
+Die nach einer Koordinate folgenden \verb!<modifiers>! beginnen mit einem \verb%!% und können z.B. sogenannte \emph{partway modifiers} sein. Diese haben die folgende Syntax:
+
+\verb$!<number>!<angle>:<second coordinate>$
+Zum Beispiel bedeutet \verb%($(1,2)!.75!(3,4)$)%: Der Punkt, der auf der Strecke zwischen \verb!(1,2)! und \verb!(3,4)! liegt, und dreiviertel der Streckenlänge von \verb!(1,2)! entfernt ist. Gibt man zusätzlich noch einen Winkel \verb!<angle>! an, wird die 2. Koordinate vor Anwendung der Operation rotiert.
+
+\begin{wrapfigure}{r}{3cm}\begin{tikzpicture}
+\draw [help lines] (0,0) grid (3,2);
+\coordinate (a) at (1,0);
+\coordinate (b) at (3,1);
+\draw (a) -- (b);
+\coordinate (c) at ($ (a)!.25!(b) $);
+\coordinate (d) at ($ (c)!1cm!90:(b) $);
+\draw [<->] (c) -- (d) node [sloped,midway,above] {1cm};
+\end{tikzpicture}\end{wrapfigure}
+
+
+Daneben gibt es noch sogenannte \emph{distance modifiers}, die haben diese Syntax:
+
+\verb%!<dimension>!<angle>:<second coordinate>%. Schreibt man \verb%<a>!1cm!<b>%, heißt das: Nimm den Punkt, der \verb!1cm! von \verb!<a>! entfernt ist und auf der Geraden von \verb!<a>! nach \verb!<b>! liegt. Gibt man zusätzlich noch einen Winkel \verb!<angle>! an, wird die 2. Koordinate vor Anwendung der Operation rotiert.
+
+\begin{verbatim}
+\begin{tikzpicture}
+\draw [help lines] (0,0) grid (3,2);
+\coordinate (a) at (1,0);
+\coordinate (b) at (3,1);
+\draw (a) -- (b);
+\coordinate (c) at ($ (a)!.25!(b) $);
+\coordinate (d) at ($ (c)!1cm!90:(b) $);
+\draw [<->] (c) -- (d) node [sloped,midway,above] {1cm};
+\end{tikzpicture}
+\end{verbatim}
+
+Ein \emph{projection modifier} hat die Syntax: 
+\texttt{!<projection coordinate>!<angle>:<2nd coordinate>}.
+Hierbei wird \texttt{<projection coordinate>} orthogonal auf die Geraden zwischen der vorweg angegebenen Koordinate und \texttt{<2nd coordinate>} projiziert.
+
+\subsubsection*{Pfade}
+Allgemeine Syntax: \verb!\path<specification>;!. Die \emph{specification} ist eine Folge von Pfad-Operationen. An jeder Stelle, an der eine Pfad-Operation erwartet wird, können auch Grafikoptionen in eckigen Klammern angegeben werden. Manche dieser Optionen wirken sich nur auf die nachfolgenden Pfadoperationen und Koordinaten aus (z.B. \texttt{rounded corners}), manche wirken auf den gesamten Pfad (z.B. \verb!color=!) - in diesem Fall gewinnt der letzte Aufruf.
+
+Beispiel:
+\begin{verbatim}
+\begin{tikzpicture}
+\tikz \draw (0,0) node{start}  -- (1,1) 
+[rounded corners,color=blue] -- (2,0) -- (3,1)
+[sharp corners,color=red] -- (3,0) -- (2,1) node{end} -- cycle;
+\end{tikzpicture}
+\end{verbatim}
+
+\begin{tikzpicture}
+\tikz \draw (0,0) node{start}  -- (1,1) 
+[rounded corners,color=blue] -- (2,0) -- (3,1)
+[sharp corners,color=red] -- (3,0) -- (2,1) node{end} -- cycle;
+\end{tikzpicture}
+
+\paragraph{Aktionen auf Pfaden:}
+Man kann Pfade nachziehen (Option \verb!draw!), oder sie benutzen um alles, was später gezeichnet wird, auszuschneiden (Option \verb!clip!). Man kann Pfade auch  füllen, d.h. ausmalen (Option \verb!fill!), auch mit Farbverläufen (Option \verb!shade!) oder Mustern (\verb!pattern!). In diesem Fall wird der Pfad, falls er offen ist, automatisch geschlossen (auch ohne \verb!cycle!). Das geht über Optionen, etwa \verb!\path[fill,draw]!, oder über abgekürzte Befehle, z.B. \verb!\filldraw!, was dasselbe bewirkt. Diese Aktionen können überall innerhalb der Pfadspezifikation stehen, nicht notwendigerweise am anfang. Sie wirken immer auf den ganzen Pfad.
+
+Pfade benamsen geht mit den Optionen \verb!name path=<name>! (Dann gilt der Name nur innerhalb des aktuellen Scopes) und \verb!name path global=<name>!
+
+Das obige Beispiel zeigt auch, wie man Nodes innerhalb der Pfad-Spezifikation definiert. Diese Nodes gehören dann aber nicht zu dem Pfad, sondern werden intern nach dem Zeichnen des Pfades verarbeitet.
+
+Die Reihenfolge der Pfadaktion ist: erst wird der Pfad gefüllt, dann die Linie nachgezogen und dann geclippt. Wenn man eine gewisse andere Reihenfolge erzwingen möchte, kann man mittels der Optionen \texttt{preaction={<options>}} und \texttt{postaction={<options>}} für ein Set von Optionen erwingen, dass es vorab oder hinterher zusätzlich ausgeführt wird. Man kann jede dieser Optionen auch mehrmals setzen. Der Pfad wird dann jesemal mit der entsprechenden Optionenmenge verarbeitet und mehrmals wiederverwendet, obwohl er nur einmal berechnet werden musste.
+
+\paragraph*{Pfad-Stile}
+Der Stil \verb!every path! wird am Anfang jeden PFades installiert. Z.B.: 
+\begin{verbatim}
+\begin{tikzpicture}[every path/.style={draw}] % all paths are drawn
+\end{verbatim}
+
+Der Stil \verb!every circle! wird für alle Pfadkomponenten installiert, die mit der Kreis-Operation erzeugt wurden.
+
+\paragraph*{Pfade dynamisch erweitern:}
+Den Key \verb!/insert path=<path>! kann man dazu benutzen, um die Pfad-Spezifikation mittels Optionen zu erweitern. Das kann man dazu benutzen, um grafische Inhalte zu Pfaden hinzuzufügen. Ein kleines Beispiel: \tikz [c/.style={insert path={circle[radius=2pt]}}] \draw (0,0) -- (1,8pt) [c] -- (2,0) [c]; wird erzeugt durch die äquivalenten Befehle
+
+\begin{verbatim}
+\tikz [c/.style={insert path={circle[radius=2pt]}}]
+      \draw (0,0)--(1,8pt) [c] --(2,0) [c];
+\tikz \draw (0,0)--(1,8pt) circle[radius=2pt] --(2,0) circle[radius=2pt];
+\end{verbatim}
+
+(Das \texttt{c} wird expandiert zu \texttt{circle[radius=2pt]}).
+
+\paragraph*{Move-To Operationen:}
+werden angegeben, indem man einfach eine Koordinate als Pfadoperation angibt: \verb!<coordinate>! Das ist i.A. die erste Pfadoperation, mit der ein Pfad begonnen wird.
+
+\paragraph*{Line-To Operationen:}
+Gerade Linien: \verb!--<coordinate>! vor und nach dem Doppelminus können auch Leerzeichen stehen.
+
+Horizontale und Vertikale Verbinder: \verb!-|<coordinate>! bedeutet: erst horizontal, dann vertikal. \verb!|-<coordinate>! bedeutet: erst vertikal, dann horizontal.
+
+\paragraph*{Curve-To Operationen} um Bezierkurven zu erzeugen. Syntax: \texttt{.. controls <c> and <d> .. <coordinate>} erzeugt eine Bezierkurve mit den Kontrollpunkten \verb!<c>! und \verb!<d>!. Lässt man \verb!and <d>! weg, dann wird die zweite Kontrollkoordinate gleich der ersten gesetzt. Die Kontrollpunkte beeinflussen die Tangentialrichtung, mit der die Kurve an den voranstehenden und nachfolgenden Koordinaten beginnt und endet. Je weiter die Kontrollpunkte von den Endkoordinaten entfernt sind, desto größer wird die Kurve.
+
+\paragraph*{Cycle Operation:} \verb!--cycle! Diese Operation erzeugt eine gerade Linie vom aktuellen Punkt zu dem letzten Punkt, der durch eine Move-to-Operation eingefügt wurde. Das ist meistens, aber nicht zwingend, der erste Punkt des Pfades.
+
+\paragraph*{Rechteck-Operation:} \verb!rectangle <corner>!  erzeugt ein achsenparalleles Reckteck vom aktuellen Punkt hin zu \verb!<corner>!.
+
+
+\begin{wrapfigure}{r}{1.5cm}\begin{tikzpicture}
+\draw[color=gray,very thin] (10pt,15pt) circle[radius=10pt];
+\draw (0,0) [rounded corners=10pt] -- (0pt,25pt) [sharp corners] -- (40pt,25pt)  -- (40pt,0);
+\end{tikzpicture}\end{wrapfigure}
+
+\paragraph*{abgerundete Ecken:} werden durch die folgende Pfad-Option erzeugt: \verb![rounded corners]! bzw. \verb![rounded corners=<inset>]!. Dann werden die nachfolgenden durch line-to oder curve-to-Operationen erzeugten Ecken durch kleine Bögen ersetzt, deren Radius dem angebenen \verb!<inset>! entspricht. Mit \verb!sharp corners! schaltet man das wieder aus.
+
+\begin{verbatim}
+\begin{tikzpicture}
+\draw[color=gray,very thin] (10pt,15pt) circle[radius=10pt];
+\draw (0,0) [rounded corners=10pt] -- (0pt,25pt) [sharp corners]
+       -- (40pt,25pt)  -- (40pt,0);
+\end{tikzpicture}
+\end{verbatim}
+
+\paragraph*{Kreis-Operation:} \verb!circle[<options>]! Diese Operation erzeugt einen Kreis oder eine Ellipse um die aktuelle Position (außer es wird ein Mittelpunkt über die Option \verb!at=<coordinate>! übergeben). Der Kreismittelpunkt wird (bzw. bleibt) die neue aktuelle Position. Weitere Optionen sind: \verb!x radius=<wert>! und \verb!y radius=<wert>!, bzw. einfach \verb!radius=<wert>!; sowie \verb!rotate=<gradzahl>!, \verb!scale=<wert>!. Der \verb!radius! kann auch in den umgebenden Scopes als Option gesetzt werden.
+
+\paragraph*{Bogen-Operation:} \verb!arc[<options>]! Diese Operation erzeugt einen Kreisbogen oder einen elliptischen Bogen. die aktuelle Position ist der Startpunkt des Bogens. Der Endpunkt (bestimmt durch die Winkel) wird nach der Bogen-Operation die neue aktuelle Position sein. Der Radius wird gesetzt durch die Optionen \verb!x radius=<wert>! und \verb!y radius=<wert>!, oder stattdessen einfach \verb!radius=<wert>!. Die Winkel werden definiert, indem zwei der 3 folgenden Optionen gesetzt werden: \verb!start angle=<gradzahl>!, \verb!end angle! und \verb!delta angle!. Sind alle 3 gesetzt, wird \verb!delta angle! ignoriert. 
+
+Es gibt auch eine verkürzte Aufrufmöglichkeit für die Bogen-Operation: \texttt{arc(<start angle>:<end angle>:<radius>}.
+
+\paragraph*{Gitter-Operation:} \verb!grid[<options>]<corner>! Diese Operation fügt ein rechteckiges Gitter hinzu, dessen Ecken definiert sind durch die letzte aktuelle Position und \verb!<corner>! (was zur neuen aktuellen Position wird).  Mit \texttt{step=<number or dimension or coordinate>} (initial 1cm) setzt man die Schrittweite in x und y-Richtung. Die x- und y-Richtungen können aber auch einzeln über die Optionen \texttt{xstep=<dimension or number>} bzw. \verb!ystep! gesetzt werden. Zu beachten ist, dass die Gitterlinien stets so versetzt sind, dass der Punkt \verb!(0,0)! auf dem Gitter liegt. Das heißt, die beiden Endpunkte liegen nur dann auf Gitterlinien, wenn ihre Koordinaten ein Vielfaches der Schrittweite sind. Anderenfalls erscheint das Gitter 'abgeschnitten'.
+
+Weitere Pfad-Operationen, die hier nicht betrachtet werden, sind: \verb!parabola!, \verb!sin!, \verb!cos!, \verb!svg!, \verb!plot!, \verb!to!, \verb!let!, Scoping.
+
+\paragraph*{To-Operation:} \verb!to[<options>] <nodes> (<coordinate>)! Mit \texttt{(a) to (b)} erzeugt man eine gerade Linie von a nach b, exakt wie bei \verb!(a) -- (b)!. Bei \texttt{(a) to [out=135,in=45] (b)} wird eine Kurve erzeugt, die bei a mit einem Austrittswinkel von 135\textdegree{} beginnt und mit einem Winkel von 45\textdegree{} bei b endet.
+
+Mit \verb!<nodes>! kann man einen Node auf der to-Kurve hinzufügen (im Gegensatz nur der normalen Pfad-Node-Operation, die einen Node auf einer Koordinate hinzufügt). z.B. erzeugt \texttt{node [sloped,above]} \verb!{Lauftext}! einen entlang der to-Kurve verlaufenden \verb!Lauftext!.
+
+Der Stil \verb!every to! wird jeder to-Kurve zugewiesen.
+
+\paragraph*{Let-Operation:} Syntax: \verb!let <assignment>, <assignment>, <assignment>... in!. Bei dieser Operation wird nicht gezeichnet. Es werden der Reihe nach die einzelnen \verb!<assignment>!s ausgewertet.
+
+Zuweisung \verb!\n<number register>={<formula>}!: Hier wird \verb!<formula>! mittels \verb!\pgfmathparse! ausgewertet und das Ergebnis wird im \verb!<number register>! gespeichert. Wenn die Formel eine Einheit enthält, also \verb!cm!, \verb!pt! o.ä., wird das Ergebnis in \verb!<number register>! mit einem abschließenden \verb!pt! gespeichert. Der Zugriff auf das Ergebnis erfolgt dann anschließend mit \verb!\n{<number register>}!. Ein Beispiel: Sei \verb!let \n1={1pt+2pt}, \n2={1+2} in ...!, dann wird innerhalb des \verb!...!-Abschnitts das Makro \verb!\n1! expandiert zu \verb!3pt! und \verb!\n2! expandiert zu \verb!3!.
+
+Zuweisung \verb!\p<point register>={<formula>}! Punktregister speichern einen Punkt, mit einem x- und y-Wert, also keine Nodes mit Text o.ä. Ein Beispiel: \tikz \draw let \p{foo} = (1,0.5), \p2 = (2,0) in (0,0) -- (\p2) -- (\p{foo});
+
+\begin{verbatim}
+\draw let \p{foo} = (1,0.5), \p2 = (2,0) in (0,0) -- (\p2) -- (\p{foo});
+\end{verbatim}
+
+Wie das Beispiel zeigt, kann man mit \verb!\p{<point register>}! innerhalb der let-Operation auf den Punkt zugreife. Man kann aber auch mit \verb!\x{<point register>}! oder \verb!\y{<point register>}! lediglich auf die x- oder y-Komponente des Punktes. Will man auf eine berechnete Koordinate von außerhalb zugreifen, muss man diese mit \verb!\coordinate!  speichern. Dazu ein Beispiel: Wir wollen einen Kreis zeichnen, der eine gegebene Gerade berührt.
+
+\begin{verbatim}\begin{tikzpicture}[x=0.5cm,y=0.5cm]
+  \draw [help lines,step=1] (0,0) grid (3,3);
+  \coordinate (a) at (rnd,rnd);
+  \coordinate (b) at (3-rnd,3-rnd);
+  \draw (a) -- (b);
+  \node (c) at (1,2) {\tiny x};
+  \draw let
+            \p1 = ($ (a)!(c)!(b) - (c) $),
+            \n1 = {veclen(\x1,\y1)}
+        in 
+            coordinate (p1) at (\p1)
+            circle [at=(c), radius=\n1];
+  \node at (p1) {\tiny p1};
+\end{tikzpicture}
+\end{verbatim}
+  
+\begin{tikzpicture}[x=0.5cm,y=0.5cm]
+  \draw [help lines,step=1] (0,0) grid (3,3);
+  \coordinate (a) at (rnd,rnd);
+  \coordinate (b) at (3-rnd,3-rnd);
+  \draw (a) -- (b);
+  \node (c) at (1,2) {\tiny x};
+  \draw let
+            \p1 = ($ (a)!(c)!(b) - (c) $),
+            \n1 = {veclen(\x1,\y1)}
+        in 
+            coordinate (p1) at (\p1)
+            circle [at=(c), radius=\n1];
+  \node at (p1) {\tiny p1};
+\end{tikzpicture}
+
+Daneben gibt es noch die Node- und Edge-Operation. Die \verb!node! Operation fügt einen neuen Node an der aktuellen Position hinzu (dieser neue Node gehört dann aber nicht zu dem Pfad).
+
+\paragraph*{PGF-Extra-Operation:} \verb!\pgfextra{<code>}!. Die Pfad-Konstruktion wird temporär pausiert und der \verb!<code>! wird ausgeführt. Anschließend wird die Pfadkonstruktion fortgesetzt. Beispiel: \newdimen\mytestdim \tikz \mytestdim=0cm \draw (\mytestdim,0pt) \pgfextra{\mytestdim=1cm} -- (\mytestdim,0pt);
+
+\begin{verbatim}\newdimen\mytest 
+\tikz \mytest=0cm 
+      \draw (\mytest,0pt) \pgfextra{\mytest=1cm} -- (\mytest,0pt);
+\end{verbatim}
+
+
+\subsubsection*{Grafikoptionen}
+\label{sec:Grafikoptionen}
+werden i.d.R. als Schlüssel-Wert-Paare gesetzt: \texttt{<key1>=<value1> [,<key2>=<value2> [,...]]}. Man kann sie auch mit \verb!\tikzset{<options>}! in der Präambel des LaTeX-Dokuments setzen, dann sind sie global gültig.
+
+Besser ist es aber, man übergibt sie als optionale Parameter an die \verb!\path!-, \verb!draw!-, usw. -Befehle, oder setzt sie direkt für ein TikZ-Bild, Scope. Beispiele sind Farben, Linienstärke, Linienstiel (gestrichelt, gepunktet usw) und viele andere. Das macht man, indem man die Optionsliste in eckige Klammern hinter den jeweiligen Befehl setzt. z.B. erzeugt 
+\begin{verbatim}\tikz \draw[line width=0.5pt,color=red] 
+         (1,0) -- (0,0) -- (0,10pt) -- cycle;\end{verbatim}
+diese Figur: \tikz \draw[line width=0.5pt,color=red] (1,0) -- (0,0) -- (0,10pt) -- cycle;.
+
+Um Für eine Gesamte-TikZ-Zeichnung gültige Optionen zu setzten, macht man 
+
+\begin{verbatim}\begin{tikzpicture}[<options>]
+  <environment contents>
+\end{tikzpicture}\end{verbatim}
+
+When a pair \verb!<key>=<value>! is processed, the following happens:
+
+\begin{enumerate}
+\item If the \verb!key! is a full key (starts with a slash) it is handled directly as described in Section 55 (\emph{package pgfkeys}).
+\item Otherwise (which is usually the case), it is checked whether \verb!/tikz/<key>! is a key and, if so, it is executed.
+\item Otherwise, it is checked whether \verb!/pgf/<key>! is a key and, if so, it is executed.
+\item Otherwise, it is checked whether \verb!key! is a color and, if so, \verb!color=<key>! is executed.
+\item Otherwise, it is checked whether \emph{key} contains a dash and, if so, \verb!arrows=<key>! is executed.
+\item Otherwise, it is checked whether \verb!key! is the name of a shape and, if so, \verb!shape=<key>! is executed.
+\item  Otherwise, an error message is printed.
+\end{enumerate}
+
+Note that by the above description, all keys starting with /tikz and also all keys starting with /pgf
+can be used as \emph{<key>}s in an \emph{<options>} list.
+
+\paragraph*{Farben}
+werden mit der Option \verb!color=<farbe>! gesetzt. Dabei sind vordefinierte Farbnamen möglich, oder \verb!xcolor!-Ausdrücke oder selbstdefinierte Farben. Einige Beispiele: Man kann Farben aufhellen \verb%red!20% \tikz \fill[color=red!20] (0,0) circle[radius=1ex]; oder  mischen, etwa \texttt{red!50!yellow} \tikz \fill[red!20!yellow] (0,0) circle (5pt);. Wie das geht, und was man sonst noch mit Farben machen kann, steht in der Dokumentation des \emph{xcolor}-Pakets, welches von TikZ benutzt wird. 
+
+Eigene Farben können z.B. so definiert werden: \verb!\definecolor{orange}{rgb}{1,0.5,0}! (neben \emph{rgb} gibt es noch das Farbmodell \emph{gray}). Farben können auch basierend auf bereits bestehenden anderen Farbdefinitionen erzeugt werden: \verb%\colorlet{lightgray}{black!25}%. Mit der Option \verb!color! wird sowohl Füll- als auch Linienfarbe festgelegt. Will man das nicht, verwendet man \verb!draw=<farbe>! bzw. \verb!fill=<farbe>!. Der Spezielle Farbname \verb!none! kann dazu genutzt werden, um eine evtl. vorher gesetzte Farbe auszuschalten.
+
+\paragraph*{Linienstärke}
+setzt man mit \verb!line width=<dimension>!, Initialer Wert ist \verb!0.4pt!. Es gibt spezielle vordefinierte Stile, die die Linienstärke ebenfalls festlegen: \verb!ultra thin! ist 0.1pt, \verb!very thin! ist 0.2pt, \verb!thin! ist 0.4pt, \verb!thick! ist 0.8pt, \verb!very thick! ist 1.2pt, \verb!ultra thick! ist 1.6pt.
+
+\paragraph*{Ecken und Enden}
+\begin{verbatim}
+\begin{tikzpicture}
+\begin{scope}[line width=10pt]
+  \draw[line cap=rect] (0,0 ) -- (1,0);
+  \draw[line cap=butt] (0,.5) -- (1,.5);
+  \draw[line cap=round] (0,1 ) -- (1,1);
+\end{scope}
+
+\draw[white,line width=1pt] (0,0 ) -- (1,0);
+
+\begin{scope}[line width=10pt,xshift=1.5cm]
+  \draw[line join=round] (0,0) -- ++(.5,1) -- ++(.5,-1);
+  \draw[line join=bevel] (1.25,0) -- ++(.5,1) -- ++(.5,-1);
+  \draw[line join=miter] (2.5,0) -- ++(.5,1) -- ++(.5,-1);
+\end{scope}
+\useasboundingbox (0,1.5); % make bounding box bigger
+\end{tikzpicture}
+\end{verbatim}
+
+\begin{tikzpicture}
+\begin{scope}[line width=10pt]
+  \draw[line cap=rect] (0,0 ) -- (1,0);
+  \draw[line cap=butt] (0,.5) -- (1,.5);
+  \draw[line cap=round] (0,1 ) -- (1,1);
+\end{scope}
+
+\draw[white,line width=1pt] (0,0 ) -- (1,0);
+
+\begin{scope}[line width=10pt,xshift=1.5cm]
+  \draw[line join=round] (0,0) -- ++(.5,1) -- ++(.5,-1);
+  \draw[line join=bevel] (1.25,0) -- ++(.5,1) -- ++(.5,-1);
+  \draw[line join=miter] (2.5,0) -- ++(.5,1) -- ++(.5,-1);
+\end{scope}
+\useasboundingbox (0,1.5); % make bounding box bigger
+\end{tikzpicture}
+
+\paragraph*{Gestrichelte und gepunktete Linien}
+
+Mit der Option \verb!dash pattern=<dash pattern>! definiert man ein Strichelmuster. z.B. bedeutet \verb!on 2pt off 3pt on 4pt off 4pt! zeichne 2pt, dann eine Lücke von 3pt, dann zeichne 4pt, dann eine Lücke von 4pt. Und dann wieder von vorn. Mit der Option \verb!dash phase=3pt! kann man das Strichelmuster verschieben. 
+Auch hier gibt es wieder vordefinierte Stile: \newline
+
+\begin{tikzpicture}
+  \coordinate (last) at (0,0);
+  \foreach \p in {solid, dotted, densely dotted, loosely dotted,dashed}
+    \draw[\p] (last) to  node[above,text width=2cm] {\p}  ++(3,0) coordinate (last);
+  \coordinate (last) at (0,-1);
+  \foreach \p in {densely dashed, loosely dashed, dashdotted, densely dashdotted, loosely dashdotted}
+    \draw[\p] (last) to  node[above,text width=2cm] {\p}  ++(3,0) coordinate (last);
+  \coordinate (last) at (0,-2);
+  \foreach \p in {dashdotdotted, densely dashdotdotted, loosely dashdotdotted}
+    \draw[\p] (last) to  node[above,text width=2cm] {\p}  ++(3,0) coordinate (last);
+\end{tikzpicture}
+
+\paragraph*{Transparenz}
+für Linien (und Füllungen etc.) wird Optionen wie \verb!draw opacity! erzeugt, näheres dazu im \emph{pgfmanual} Kapitel 20.
+
+\paragraph*{Pfeilspitzen}
+werden mit der Option \verb!arrows=<start arrow kind>-<end arrow kind>! erzeugt. Es gibt die vordefinierten Pfeilspitzen \texttt{to} \tikz \draw[to-to] (0,0) -- ++(1,0); (default),  \texttt{stealth} \tikz\draw[stealth-stealth] (0,0) -- ++(1,0); und \texttt{latex} \tikz \draw[latex-latex] (0,0) -- ++(1,0); . Den Default für die Anfangs- und Endspitze kann man ändern mit \verb!>=!\emph{<end arrow kind>} und mit \verb!<=!\emph{<start arrow kind>} (z.B. auch in einem übergeordneten Scope). Dann wird bei Benutzung von \verb!<! oder \verb!>! als Pfeiltyp nicht mehr \verb!to! eingesetzt, sondern der entsprechende andere Typ. 
+
+Doppelte Pfeilspitzen sind möglich mit \verb!<<! und \verb!>>!. Pfeilspitzen kann man umkehren, indem man \verb!>! am Pfeilanfang setzt (bzw. \verb!<! am Pfeilende), oder dem Namen des Pfeiltyp das Schlüsselwort \texttt{reversed} dahinterstellt, z.B. \verb![latex reversed-<<]! \tikz \draw[latex reversed-<<] (0,0) -- ++(1,0); Mit \verb!|<! und \verb!>|! wird noch eine senkrechte Linie am Pfeilende gezeichnet: \tikz \draw[|<->|] (0,0) -- ++(1,0);
+
+Das Präfix \verb!arrows=! kann man auch weglassen, denn anhand des Minus erkennt er automatisch, dass es sich bei dem angegebenen Wert um eine Deklaration für Pfeile handelt. Weitere Pfeilspitzen werden in der TikZ-Library \texttt{arrows} mitgeliefert, siehe \emph{pgfmanual} Kapitel 23 (und 74 zur Definition eigener Pfeile).
+
+\paragraph*{doppelte Linien} kann man simulieren mit der Option \texttt{double[=<core color>]}, z.B. \tikz{\draw[double=yellow] (0,0)--(0.5,0); \draw[double] (0.5,0)--(1,0);}
+Die \emph{core color} gibt dabei die Farbe an zwischen den 2 Linien. Technisch wird hierbei der Pfad erst dick mit der Linienfarbe gezeichnet, und dann nochmal dünn mit der \emph{core color} (defaultwert ist weiß). Mit der Option \texttt{double distance=<dimension>} oder wahlweise mit \texttt{double distance between line centers} (initial 0.6pt) setzt man den Abstand dieser [scheinbar] 2 Außenlinien (ersteres setzt die Stärke der Innenlinie, zweiteres den Abstand der 2 Außenlinien von deren Mitte aus gemessen).
+
+\paragraph*{Pfade füllen} kann man mit der Option \texttt{fill[=<color>]}, die Füllfarbe wird spezifiziert durch die Option \texttt{fill} selbst oder durch die Option \texttt{color}. Mit der Option \texttt{even odd rule} kann man sich selbst überschneidende Pfade (\emph{intersections}) zeichnen. 
+Beispiel: \tikz\draw[fill=yellow] (0,0) circle (5pt) (5pt,0) circle (5pt); normal; \tikz\draw[fill=yellow,even odd rule] (0,0) circle (5pt) (5pt,0) circle (5pt); mit \texttt{even odd rule}.
+
+Füllung mit Mustern geht mit den Optionen \texttt{pattern=<name>} und \texttt{pattern color=<farbe>}, dazu muss man die TikZ-Library \texttt{patterns} laden. Siehe 15.4.1 im \emph{pgfmanual}. Man kann auch ein komplettes TikZ-Bild als Füllung verwenden, siehe 15.5.
+
+\paragraph*{Einen Pfad zur Berechnung der Bounding Box verwenden}
+kann man mit der Option \texttt{use as bounding box}. Wenn man diese bei einem Pfad setzt, haben alle \emph{nachfolgenden} Pfade innerhalb des aktuellen Scopes keinen Einfluss mehr auf die Berechnung der Box, sie werden aber dennoch vollständig gezeichnet. Es kann allerdings vorkommen, dass ein früher definierter Pfad die Bounding Box schon größer gemacht hat, als der Pfad mit dieser Option.
+
+Es kann sinnvoll sein, diese Option gemeinsam mit dem Befehl \verb!\pgfresetboundingbox! zu verwenden. Es gibt 2 spezielle Nodes: Der Node \texttt{current bounding box} hat ein \texttt{rectangle}-Shape und seine Größe entspricht zu jedem Zeitpunkt der aktuellen Bounding Box des Scopes. Der Node \texttt{current path bounding box} hat ein \texttt{rectangle}-Shape und seine Größe entspricht zu jedem Zeitpunkt der Bounding Box des aktuellen Pfades.
+
+Mit der Scope-Option \texttt{trim left=<dimension or coordinate or \textbf{default}>} (default \texttt{0pt}) wird alles was sich links von der angegebenen Koordinate befindet, aus der Bounding-Box entfernt (aber nicht vom Bild abgeschnitten). Äquivalent gibt es noch \texttt{trim right} (kein Defaultwert).
+
+\paragraph*{Clipping:}
+Hat ein Pfad die Option \texttt{clip}, wird alles \emph{nachfolgende} im Scope von diesem Pfad beschnitten. Beispiel: \tikz[very thick]{\draw[clip] (0,0) circle (5pt); \fill[red] (5pt,0) circle (5pt);} wird erzeugt durch \texttt{\textbackslash{}draw[clip] (0,0) circle (5pt); \textbackslash{}fill[red] (5pt,0) circle (5pt);} Außer der Option \texttt{draw} sollten keine weiteren Optionen an einem Pfad zusammen mit \texttt{clip} gesetzt werden.
+
+\subsubsection*{Nodes, Coordinates und Edges}\label{path-content und node} 
+
+Nodes dienen dazu, Text zu Grafiken hinzuzufügen. Dazu gibt man das Schlüsselwort \verb!node! am Anschluss an eine Koordinatendefinition in einer Pfad-Spezifikation an, ggf. gefolgt von Optionen in eckigen Klammern. 
+
+Obwohl Nodes in der Pfadspezifikation erzeugt werden, gehören sie nicht zu dem Pfad. Sie werden erst erzeugt,  nachdem der Pfad gezeichnet wurde.
+
+Ein Beispiel: \verb!\draw (1,1) node[circle,draw] {text} -- (2,2);!
+erzeugt \tikz\draw (1,1) node[circle,draw] {text} -- (2,2);. Man kann den Nodes Namen geben, um sie später wieder zu verwenden. Entweder man macht das mit der Option \verb!name=<node name>! oder man gibt den Namen in Klammern außerhalb des Textes an, wie in \texttt{node [circle] (name)} \verb!{text}!. Es gibt die vordefinerten Shapes \verb!rectangle!, \verb!circle! und \verb!coordinate!. Für weitere Shapes, siehe \emph{pgfmanual} Kapitel 48. \texttt{coordinate}s sind ein Spezialfall, hierfür gibt es auch noch eine eigene Pfadoperation.
+
+\paragraph*{Allgemeine Syntax für die Node-Pfadoperation:}
+\verb!node[<options>](<name>){<text>}}!
+Der Befehl \verb!\node[<options>](<name>)at(<coordinate>){<text>}! ist eine Abkürzung für \verb!\path node! und ist sinnvoll, wenn in einer Pfadspezifikation ausschließlich ein einziger Node definiert werden soll.
+
+Der \texttt{at(<coordinate>)}-Teil gibt an, wo der Node positioniert ist. Er wird nur bei der abgekürzten Befehlsform benutzt, denn im anderen Fall wird die letzte aktuelle Koordinate des Pfades verwendet. Die Koordinate kann auch als Option der Form \verb!at={<coordinate>)! übergeben werden.
+
+Der Teil \texttt{(name)} ist optional.
+
+Node-Optionen wirken nur auf den Node und nicht auf den umgebenden Pfad. Die Pfadoptionen wirken teilweise auf den Node, aber nicht alle (z.B. \texttt{draw} und \texttt{fill} nicht).
+
+\paragraph*{Option Shape:}
+Mit der Option \texttt{shape=<shape name>} wird die Form des Node festgelegt, Initialwert ist \texttt{rectangle}.
+
+\paragraph*{Stile für Nodes}
+Auf jedem Node wird der Stil \texttt{every node} installiert und der Stil \texttt{every <shape> node}.
+
+\paragraph*{Das besondere Shape coordinate}
+kann mit \texttt{node}  und der Option \texttt{shape=coordinate}, aber auch mit einer eigenen Pfadoperation erzeugt werden: \texttt{coordinate [<options>] (<name>)} oder mit dem Befehl \verb!\!\texttt{coordinate [<options>](<name>)at(<coordinate>)}. Auch hier ist der Teil \texttt{(<name>)} optional, und sowohl \texttt{name} als auch \texttt{at} können alternativ als Option übergeben werden.
+
+\paragraph*{Option für den Abstand zwischen Text und dem Rand des Nodes}
+ist \texttt{inner sep=<dimension>}, initialer Wert ist \texttt{0.3333em}. Er kann auch für jede Achse einzeln gesetzt werden mit \texttt{inner xsep} und \texttt{inner ysep}.
+
+\paragraph*{Option für den äußeren Abstand:}
+Mit \texttt{outer sep=<dimension>} werden die Anker des Nodes etwas nach außen versetzt. Der Default entspricht der halben verwendeten Linienbreite, damit Pfeile u.ä. direkt am Außenrand des Nodes enden. Auch hier gibt es wieder achsenspezifische Optionen.
+
+\paragraph*{Größe des Nodes}
+ist normalerweise an den Text des Nodes angepasst. Man kann sie beeinflussen mit den Optionen \texttt{minimum width|height=<dimension>} (default \texttt{0pt}) bzw. \texttt{minimum size} (setzt beides).
+
+Standardmäßig wächst der Node mit zunehmender Größe nur in die Breite, so dass der Text einzeilig bleibt. Um das zu ändern, gibt es mehrere Möglichkeiten.
+\begin{enumerate}
+\item Man tut eine \texttt{tabular} Umgebung in den Text rein.
+\item Man benutzt \verb!\\! für manuelle Zeilenumbrüche (in dem Fall ist die Option \texttt{align} von Interesse, mögliche Werte sind u.a. \texttt{left|center|right|justify}). Dem Zeilenumbruch kann man noch eine Größenoption mitgeben, etwa \verb!\\[-2pt]!, um den Abstand der Zeile, die auf den Umbruch folgt, um 2pt auf der y-Achse nach unten zu verschieben (also den Abstand zu vergrößern).
+\item Man gibt die Breite der Textbox fest vor mit der Node-Option \texttt{text width= <dimension>}.
+\end{enumerate}
+
+Die Höhe der Textbox kann man analog mit der Option \texttt{text height} oder \texttt{text depth} setzen. Es wird aber empfohlen, stattdessen \texttt{minimum height} zu benutzen.
+
+\paragraph*{Textfarbe}
+wird mit der Option \texttt{text=<color>} gesetzt, sofern nicht bereits eine \texttt{color}-Option wirkt.
+
+\paragraph*{Schriftbild}
+kann mit der Option \texttt{font=<font commands>} beeinflusst werden. Mögliche Werte sind z.B. \verb!\itshape! für kursiv oder \verb!\footnotesize! für etwas kleiner Schriftgröße.
+
+Es gibt noch mehr Optionen. Diese werden hier ebenso wie \emph{Multinodes} nicht behandelt. Siehe \emph{pgfmanual}, 16.2 und 16.3.
+
+\paragraph*{Nodes mit Ankern positionieren}
+Ein Node hat verschiedene Anker, je nach Shape. Einige Beispiele sind \texttt{north}, \texttt{north east}, \texttt{east}, usw., \texttt{center}, \texttt{base}. Siehe Kapitel 48 im \emph{pgfmanual} für Erläuterungen. Der Anker \texttt{center} ist der Mittelpunkt des Shapes.  Mit der Option \texttt{anchor=<anker>} wird der Node so verschoben, dass der entsprechende anker auf der Positionierungskoordinate zu liegen kommt. Der Default ist \texttt{center}.
+
+Der Anker \texttt{base} ist vertikal zentriert und liegt horizontal auf der Basislinie des Textes (es gibt auch \texttt{base east|west}). Der Anker \texttt{mid} (und auch \texttt{mid east|west}) liegt etwas oberhalb der Basisline und ist nützlich, wenn man mehrere Nodes unterschiedlicher Höhe vertikal zentrieren will.
+
+Weitere Positionierungsmöglichkeiten bieten die Optionen \texttt{above=<offset>}, \texttt{below=<offset>}, \texttt{left= <offset>}, \texttt{right=<offset>}, \texttt{above left|right}, \texttt{below left|right}. Diese benutzen ebenfalls die Himmelsrichtungsanker. Mit dem Offset kann man den Abstand zur Positionierungskoordinate etwas vergrößeren, das geht aber nicht für die schrägen Richtungen. Komplexere Möglichkeiten siehe 16.5.3, 16.5.4 im \emph{pgfmanual}.
+
+Man kann auch Winkel als Ankernamen benutzen, z.B. \texttt{10}, \texttt{30}, \texttt{90} usw.
+
+\paragraph*{Relative Positionierung entlang des aktuellen Pfadsegments:}
+Mit der Option \texttt{pos= <fraction>} kann man einen Node beliebig entlang des aktuellen Pfadsegments positionieren. Der Wert 0 ist ganz am Anfang, 1 ist ganz am Ende des Segments. Bsp: \tikz \draw (0,0) node {+} -- (1,0) node {+} -- (3,0) node{+} node[pos=0.75]{x};
+
+\verb!\draw (0,0)node{+} -- (1,0)node{+} -- (3,0)node{+} node[pos=0.75]{x};!
+
+Bei den Pfadoperationen \verb!-|! und \verb!|-! ist 0.5 genau an der Ecke: \tikz \draw (0,0) -| (1,-10pt)node[pos=0.5]{x};. Bei der Kurvenoperation mit 2 Kontrollpunkten hängt die Positionierung von der Entfernung der Kontrollpunkte ab. Bei allen anderen Pfadoperationen funktioniert die Positionierung mittels \texttt{pos} nicht. Als Abkürzungen gibt es \texttt{midway} für \texttt{pos=0.5}, \texttt{atstart} und \texttt{atend} für 0 und 1, sowie noch \texttt{[very] near start|end}.
+
+Mit der Option \texttt{sloped} schlängelt sich die Textbox des Nodes entlang an dem vorigen Pfadsegement (mit \texttt{above,midway} u.ä. kann gesteuert werden, ob darüber oder darunter; mit \texttt{allow upside down} kann man verhindern, dass TeX den Text automatisch richtigrum dreht).
+
+\paragraph*{Nodes als Koordinaten}
+kann man verwenden, wenn man sie vorher benamst hat. Häufig wird dann der \texttt{center}-Anker (also der Mittelpunkt) des Nodes benutzt, aber manche Pfadoperationen wie \texttt{---} benutzen den Rand des Shapes, um die Verbindungslinie zu beenden. So machen es auch \texttt{-|}, \texttt{|-} und die Kurvenoperation. Man kann aber auch explizit einen Anker als Koordinate angeben, z.B. \texttt{<node name>.center}.
+
+\subsubsection*{Koordinatentransformationen (Kap.22)}
+
+\paragraph*{Skalierung:}
+mit \texttt{[x|y]scale=\textit{<factor>}} kann man einzelne Pfade oder ganze TikZ-Zeichnungen skalieren. Man kann auch ein Skalierungszentrum angeben, dann benutzt man die Option \texttt{scale around= {\textit{<factor>:}\textit{<coordinate>}}}.
+Linienstärken und Textgrößen bleiben dabei erhalten.
+
+\subsubsection*{Sonstiges}
+\paragraph*{Schleifen}
+gehen super mit \verb!\foreach! aus dem PGF-Paket, auch außerhalb einer TikZ-Umgebung: \foreach \x in {1,2,3} {$x =\x$, }. Details dazu im \emph{pgfmanual} Kapitel 56 (Seiten 504 bis 508).
+
+\paragraph*{Abstand zweier Vektoren berechnen und speichern}
+Der nachfolgende Code-Schnipsel muss in die Präambel des Dokuments eingefügt werden.
+
+\begin{verbatim}
+\usepackage{fp}
+
+\makeatletter
+% Makro zum Berechnen des Abstandes zweier TikZ-Koordinaten.
+% Aufruf:\calcLength(A,B){mylen} 
+% Berechnet den Abstand von A und B und speichert das Ergebnis im Makro \mylen
+\def\calcLength(#1,#2)#3{%
+\pgfpointdiff{\pgfpointanchor{#1}{center}}%
+             {\pgfpointanchor{#2}{center}}%
+\pgf@xa=\pgf@x%
+\pgf@ya=\pgf@y%
+\FPeval\@temp@a{\pgfmath@tonumber{\pgf@xa}}%
+\FPeval\@temp@b{\pgfmath@tonumber{\pgf@ya}}%
+\FPeval\@temp@sum{(\@temp@a*\@temp@a+\@temp@b*\@temp@b)}%
+\FProot{\FPMathLen}{\@temp@sum}{2}%
+\FPround\FPMathLen\FPMathLen5\relax
+\global\expandafter\edef\csname #3\endcsname{\FPMathLen}
+}
+\makeatother
+\end{verbatim}
+
+Innerhalb eines TikZ-Bildes kann dann der Abstand zweier benamster Koordinaten z.B. berechnet werden mit \verb!\calcLength(<coordA>,<coordB>){mylen}! (ohne abschließendes Semikolon); dann wird das Ergebnis in dem Makro \verb!mylen! gespeichert (die Angabe ist in \emph{pt}, 1cm entspricht 28.45274pt).
+Ein Beispiel: \begin{verbatim}
+\tikz{  \coordinate(origin) at (0,0);
+        \coordinate(foobar) at (30pt,40pt); 
+        \calcLength(origin,foobar){meinabstand} 
+        \node[rectangle,draw] at (foobar) {Abstand vom Ursprung: \meinabstand};
+}\end{verbatim}
+erzeugt diesen Text: \tikz{
+  \coordinate(origin) at (0,0);
+  \coordinate(foobar) at (30pt,40pt); 
+  \calcLength(origin,foobar){meinabstand} 
+  \node[rectangle,draw] at (foobar) {Abstand vom Ursprung: \meinabstand};
+}
+
+Das so definierte Makro ist auch außerhalb der TikZ-Umgebung verfügbar.
+
+\paragraph{Decorations benutzen, um die Länge eines Pfades zu bestimmen}
+Man muss die TikZ-Libraries \verb!decorations! und \verb!decorations.markings! laden. Das folgende Beispiel zeigt, wie man einen parametrisierten Stil baut, der die Länge des unterliegenden Pfades in einem frei wählbaren Makro speichert (Einheit ist pt, Defaultname des Makros im Beispiel ist \verb!pathlen!).
+
+\begin{verbatim}
+\begin{tikzpicture}[savelength/.style={postaction={decorate,
+  decoration={markings,mark=at position 0.5 with{
+    \node{
+      \pgfmathparse{2*\pgfkeysvalueof{/pgf/decoration/mark info/distance from start}}
+      \global\expandafter\edef\csname #1\endcsname{\pgfmathresult}
+    }; 
+  }}}}, savelength/.default=pathlen
+]
+
+\draw [help lines] grid (3cm,2cm);
+\draw [savelength=myarclen,red] (0,0) -- (3,1) arc (0:180:1.5 and 1);
+\draw [savelength=mycirclen]  (1,1) circle(\myarclen pt/10) node{x};
+\end{tikzpicture}
+\end{verbatim}
+
+\begin{wrapfigure}{r}{3cm}\begin{tikzpicture}[savelength/.style={postaction={decorate,decoration={markings,mark=at position 0.5 with{
+    \node {\pgfmathparse{2*\pgfkeysvalueof{/pgf/decoration/mark info/distance from start}}\global\expandafter\edef\csname #1\endcsname{\pgfmathresult}}; 
+  }}}},
+  savelength/.default=pathlen
+]
+
+\draw [help lines] grid (3cm,2cm);
+\draw [savelength=myarclen,red] (0,0) -- (3,1) arc (0:180:1.5 and 1);
+\draw [savelength=mycirclen]  (1,1) circle(\myarclen pt/10) node{x};
+\end{tikzpicture}\end{wrapfigure}
+
+
+Die Längen sind via \verb!\myarclen{}! bzw. \verb!\mycirclen{}! (im Bsp. \myarclen{} bzw. \mycirclen{}) sowohl innerhalb, als auch außerhalb der TikZ-Umgebung verfügbar. Bei Berechnungen muss man noch \emph{pt} hinter den Wert schreiben, damit er korrekt benutzt wird.
+
+
+\paragraph*{Decations nutzen, um Kontrollkoordinaten zu markieren}
+
+\tikzset{show curve controls/.style={decorate,
+	decoration={show path construction,curveto code={
+\draw [blue, dashed]
+		  (\tikzinputsegmentfirst) -- (\tikzinputsegmentsupporta) node[red]{x};
+		\draw [blue, dashed]
+		  (\tikzinputsegmentsupportb)node[red]{x} -- (\tikzinputsegmentlast);
+} }	} }
+
+\tikz\draw [postaction=show curve controls, thick]
+		(0,2) .. controls (2.5,1.5) and (0.5,0.5) .. (3,0);
+
+\begin{verbatim}
+\usetikzlibrary{decorations.pathreplacing}
+
+\tikzset{show curve controls/.style={decorate,
+  decoration={show path construction,curveto code={
+    \draw [blue, dashed] (\tikzinputsegmentfirst)
+        -- (\tikzinputsegmentsupporta) node[red]{x};
+    \draw [blue, dashed] (\tikzinputsegmentsupportb)node[red]{x}
+        -- (\tikzinputsegmentlast);
+}}}}
+
+\tikz\draw [postaction=show curve controls, thick]
+      (0,2) .. controls (2.5,1.5) and (0.5,0.5) .. (3,0);
+\end{verbatim}
+
+\paragraph*{Einer geht noch: Längen von Pfaden markieren}
+
+\begin{verbatim}
+\begin{tikzpicture}[decoration={markings,mark=between positions 0 and 1 step 40pt with
+  { \draw [help lines] (0,0) -- (0,0.5)
+      node[above,font=\tiny]{
+        \pgfkeysvalueof{/pgf/decoration/mark info/distance from start}};
+  },mark=at position -0.1pt with
+  { \draw [help lines] (0,0) -- (0,0.5)
+      node[above,font=\tiny]{
+        \pgfkeysvalueof{/pgf/decoration/mark info/distance from start}}; }}]
+
+  \draw [help lines] grid (5,3);
+  \draw [postaction={decorate}] (0,0) .. controls (8,3) and (0,3) .. (5,0) ;
+\end{tikzpicture}
+\end{verbatim}
+
+\begin{tikzpicture}[decoration={markings,
+% Main marks
+mark=between positions 0 and 1 step 40pt with
+{ \draw [help lines] (0,0) -- (0,0.5)
+node[above,font=\tiny]{
+\pgfkeysvalueof{/pgf/decoration/mark info/distance from start}}; },
+mark=at position -0.1pt with
+{ \draw [help lines] (0,0) -- (0,0.5)
+node[above,font=\tiny]{
+\pgfkeysvalueof{/pgf/decoration/mark info/distance from start}}; }}]
+\draw [help lines] grid (5,3);
+\draw [postaction={decorate}] (0,0) .. controls (8,3) and (0,3) .. (5,0) ;
+\end{tikzpicture}
+
+
+\end{document}
